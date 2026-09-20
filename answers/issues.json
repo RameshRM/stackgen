@@ -1,0 +1,100 @@
+{
+  "evaluated_at": "2026-09-16T12:00:00Z",
+  "issue_count": 6,
+  "issues": [
+    {
+      "issue": "collection_not_supplied",
+      "severity": "high",
+      "snapshot_id": "tf-bravo-prod-20260916",
+      "source_family": "terraform",
+      "tenant_id": "bravo",
+      "status": "not_provided",
+      "coverage": "unknown",
+      "detail": "No payload was supplied, so nothing in this scope was searched. Absence of a result here is not evidence of absence.",
+      "resolved_by": "A successful collection for this scope, at which point results become findings rather than unknowns."
+    },
+    {
+      "issue": "collection_not_supplied",
+      "severity": "high",
+      "snapshot_id": "k8s-bravo-prod-20260916",
+      "source_family": "kubernetes",
+      "tenant_id": "bravo",
+      "status": "not_provided",
+      "coverage": "unknown",
+      "detail": "No payload was supplied, so nothing in this scope was searched. Absence of a result here is not evidence of absence.",
+      "resolved_by": "A successful collection for this scope, at which point results become findings rather than unknowns."
+    },
+    {
+      "issue": "collection_past_freshness_budget",
+      "severity": "high",
+      "snapshot_id": "tf-acme-prod-20260902T090000Z",
+      "source_family": "terraform",
+      "tenant_id": "acme",
+      "observed_at": "2026-09-02T09:00:00Z",
+      "observation_age_seconds": 1220400.0,
+      "freshness_budget_seconds": 86400,
+      "detail": "Values in this collection describe the world at 2026-09-02T09:00:00Z, not at the evaluation time. Claims derived from it are historical.",
+      "resolved_by": "A fresher collection for the same scope."
+    },
+    {
+      "issue": "managed_resource_absent_from_inventory",
+      "severity": "medium",
+      "instance_id": "i-00000000000000099",
+      "address": "module.ops.aws_instance.toolbox",
+      "workspace_id": "acme-prod-core",
+      "tenant_id": "acme",
+      "snapshot_id": "tf-acme-prod-20260902T090000Z",
+      "source_file": "terraform_state/acme-production.json",
+      "locator": "/resources/2",
+      "observed_at": "2026-09-02T09:00:00Z",
+      "detail": "Terraform holds a managed record for this instance, but no supplied cloud inventory in the same tenant, account and region contains it.",
+      "resolved_by": "A cloud inventory covering this account and region with no instance-id filter, or a fresher state."
+    },
+    {
+      "issue": "identifier_reused_across_collections",
+      "severity": "medium",
+      "identifier": "i-00000000000000101",
+      "appears_in": [
+        {
+          "snapshot_id": "aws-acme-prod-20260916T115000Z",
+          "tenant_id": "acme",
+          "account_id": "111111111111",
+          "region": "us-east-1",
+          "environment": "prod"
+        },
+        {
+          "snapshot_id": "aws-bravo-prod-20260916T115200Z",
+          "tenant_id": "bravo",
+          "account_id": "111111111111",
+          "region": "us-east-1",
+          "environment": "prod"
+        }
+      ],
+      "detail": "This identifier is supplied by more than one collection. It is unique only within its own tenant, account and region, so those must be part of any match.",
+      "resolved_by": "No further evidence needed. This is a property of the identifier space, and is handled by scoping matches."
+    },
+    {
+      "issue": "identifier_reused_across_collections",
+      "severity": "medium",
+      "identifier": "payments-db",
+      "appears_in": [
+        {
+          "snapshot_id": "aws-acme-prod-20260916T115000Z",
+          "tenant_id": "acme",
+          "account_id": "111111111111",
+          "region": "us-east-1",
+          "environment": "prod"
+        },
+        {
+          "snapshot_id": "aws-acme-staging-20260916T115000Z",
+          "tenant_id": "acme",
+          "account_id": "222222222222",
+          "region": "us-east-1",
+          "environment": "staging"
+        }
+      ],
+      "detail": "This identifier is supplied by more than one collection. It is unique only within its own tenant, account and region, so those must be part of any match.",
+      "resolved_by": "No further evidence needed. This is a property of the identifier space, and is handled by scoping matches."
+    }
+  ]
+}

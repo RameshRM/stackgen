@@ -1,0 +1,345 @@
+{
+  "solnA": {
+    "query": {
+      "tenant_id": "acme",
+      "environment": "prod"
+    },
+    "evaluated_at": "2026-09-16T12:00:00Z",
+    "results": [
+      {
+        "instance_id": "i-00000000000000101",
+        "account_id": "111111111111",
+        "region": "us-east-1",
+        "observed_running": {
+          "state": "running",
+          "environment": "prod",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/0",
+            "observed_at": "2026-09-16T11:50:00Z"
+          }
+        },
+        "terraform_binding": {
+          "verdict": "binding_found",
+          "reason": null,
+          "records": [
+            {
+              "address": "module.workers.aws_instance.pool[0]",
+              "mode": "managed",
+              "workspace_id": "acme-prod-core",
+              "__ref": {
+                "source_file": "terraform_state/acme-production.json",
+                "locator": "/resources/0",
+                "observed_at": "2026-09-02T09:00:00Z",
+                "freshness_budget_seconds": 86400
+              }
+            }
+          ]
+        },
+        "limitations": [
+          "terraform_state_observed_past_its_freshness_budget"
+        ]
+      },
+      {
+        "instance_id": "i-00000000000000102",
+        "account_id": "111111111111",
+        "region": "us-east-1",
+        "observed_running": {
+          "state": "running",
+          "environment": "prod",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/1",
+            "observed_at": "2026-09-16T11:50:00Z"
+          }
+        },
+        "terraform_binding": {
+          "verdict": "binding_found",
+          "reason": null,
+          "records": [
+            {
+              "address": "module.workers.aws_instance.pool[1]",
+              "mode": "managed",
+              "workspace_id": "acme-prod-core",
+              "__ref": {
+                "source_file": "terraform_state/acme-production.json",
+                "locator": "/resources/1",
+                "observed_at": "2026-09-02T09:00:00Z",
+                "freshness_budget_seconds": 86400
+              }
+            }
+          ]
+        },
+        "limitations": [
+          "terraform_state_observed_past_its_freshness_budget"
+        ]
+      },
+      {
+        "instance_id": "i-00000000000000103",
+        "account_id": "111111111111",
+        "region": "us-east-1",
+        "observed_running": {
+          "state": "running",
+          "environment": "prod",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/2",
+            "observed_at": "2026-09-16T11:50:00Z"
+          }
+        },
+        "terraform_binding": {
+          "verdict": "no_binding_found",
+          "reason": "referenced_as_data_source_only",
+          "records": [
+            {
+              "address": "data.aws_instance.lookup",
+              "mode": "data",
+              "workspace_id": "acme-prod-core",
+              "__ref": {
+                "source_file": "terraform_state/acme-production.json",
+                "locator": "/resources/4",
+                "observed_at": "2026-09-02T09:00:00Z",
+                "freshness_budget_seconds": 86400
+              }
+            }
+          ]
+        },
+        "limitations": [
+          "terraform_state_observed_past_its_freshness_budget"
+        ]
+      },
+      {
+        "instance_id": "i-00000000000000104",
+        "account_id": "111111111111",
+        "region": "us-east-1",
+        "observed_running": {
+          "state": "running",
+          "environment": "prod",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/3",
+            "observed_at": "2026-09-16T11:50:00Z"
+          }
+        },
+        "terraform_binding": {
+          "verdict": "no_binding_found",
+          "reason": "absent_from_supplied_state",
+          "records": null
+        },
+        "limitations": [
+          "terraform_state_observed_past_its_freshness_budget"
+        ]
+      },
+      {
+        "instance_id": "i-00000000000000105",
+        "account_id": "111111111111",
+        "region": "us-east-1",
+        "observed_running": {
+          "state": "running",
+          "environment": "prod",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/4",
+            "observed_at": "2026-09-16T11:50:00Z"
+          }
+        },
+        "terraform_binding": {
+          "verdict": "no_binding_found",
+          "reason": "absent_from_supplied_state",
+          "records": null
+        },
+        "limitations": [
+          "terraform_state_observed_past_its_freshness_budget"
+        ]
+      }
+    ],
+    "scope": {
+      "terraform_workspaces_searched": [
+        "acme-prod-core"
+      ],
+      "terraform_workspaces_not_supplied": []
+    }
+  },
+  "solnB": {
+    "query": {
+      "tenant_id": "acme",
+      "environment": "prod",
+      "application_name": "payments-api"
+    },
+    "evaluated_at": "2026-09-16T12:00:00Z",
+    "application": {
+      "name": "svc-payments-prod",
+      "__ref": {
+        "source_file": "service_catalog.csv",
+        "locator": "row=2",
+        "observed_at": "2026-09-16T11:40:00Z"
+      },
+      "stated_by": "source",
+      "rule": "stated directly by the catalog row"
+    },
+    "owner_team": {
+      "value": "team-payments",
+      "stated_by": "source",
+      "rule": "stated directly by the catalog row"
+    },
+    "cluster": {
+      "value": "acme-prod",
+      "stated_by": "source",
+      "rule": "stated directly by the catalog row"
+    },
+    "namespace": {
+      "value": "production",
+      "stated_by": "source",
+      "rule": "stated directly by the catalog row"
+    },
+    "deployment": {
+      "name": "payments-api",
+      "__ref": {
+        "source_file": "k8s_resources.json",
+        "locator": "/collections/0/items/3",
+        "observed_at": "2026-09-16T11:55:00Z"
+      },
+      "stated_by": "source",
+      "rule": "the catalog row names cluster_id, namespace and deployment_name"
+    },
+    "replicaset": {
+      "name": "payments-api-7c9d",
+      "__ref": {
+        "source_file": "k8s_resources.json",
+        "locator": "/collections/0/items/4",
+        "observed_at": "2026-09-16T11:55:00Z"
+      },
+      "stated_by": "derived",
+      "rule": "ReplicaSet ownerReferences uid matches the Deployment uid"
+    },
+    "declared_dependencies": [
+      {
+        "stated_by": "derived",
+        "rule": "declared ARN matched to DBInstanceArn within this tenant and environment",
+        "arn": "arn:aws:rds:us-east-1:111111111111:db:payments-db",
+        "type": "rds",
+        "resolved": true,
+        "db_identifier": "payments-db",
+        "status": "available"
+      }
+    ],
+    "paths": [
+      {
+        "pod": {
+          "name": "payments-api-7c9d-a",
+          "__ref": {
+            "source_file": "k8s_resources.json",
+            "locator": "/collections/0/items/5",
+            "observed_at": "2026-09-16T11:55:00Z"
+          },
+          "stated_by": "derived",
+          "rule": "Pod ownerReferences uid matches the ReplicaSet uid"
+        },
+        "namespace": "production",
+        "node": {
+          "name": "ip-10-0-4-118",
+          "__ref": {
+            "source_file": "k8s_resources.json",
+            "locator": "/collections/0/items/0",
+            "observed_at": "2026-09-16T11:55:00Z"
+          },
+          "found": true,
+          "stated_by": "source",
+          "rule": "the Pod states its own spec.nodeName"
+        },
+        "sharedNodeWorkloads": [
+          "billing-api-7c9d-a"
+        ],
+        "provider_id": "aws:///us-east-1a/i-00000000000000101",
+        "instance": {
+          "id": "i-00000000000000101",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/0",
+            "observed_at": "2026-09-16T11:50:00Z",
+            "freshness_budget_seconds": 900
+          },
+          "stated_by": "derived",
+          "rule": "providerID last segment matched to InstanceId within tenant, account and region"
+        },
+        "stops_at": null,
+        "tf": {
+          "__ref": {
+            "source_file": "terraform_state/acme-production.json",
+            "locator": "/resources/0",
+            "observed_at": "2026-09-02T09:00:00Z",
+            "freshness_budget_seconds": 86400
+          },
+          "stated_by": "source",
+          "rule": "the record states the operator_team tag directly"
+        },
+        "team": {
+          "aws": [
+            "team-platform"
+          ],
+          "tf": [
+            "team-legacy-platform"
+          ],
+          "haveConflict": true
+        }
+      },
+      {
+        "pod": {
+          "name": "payments-api-7c9d-b",
+          "__ref": {
+            "source_file": "k8s_resources.json",
+            "locator": "/collections/0/items/6",
+            "observed_at": "2026-09-16T11:55:00Z"
+          },
+          "stated_by": "derived",
+          "rule": "Pod ownerReferences uid matches the ReplicaSet uid"
+        },
+        "namespace": "production",
+        "node": {
+          "name": "ip-10-0-4-119",
+          "__ref": {
+            "source_file": "k8s_resources.json",
+            "locator": "/collections/0/items/1",
+            "observed_at": "2026-09-16T11:55:00Z"
+          },
+          "found": true,
+          "stated_by": "source",
+          "rule": "the Pod states its own spec.nodeName"
+        },
+        "sharedNodeWorkloads": [],
+        "provider_id": "aws:///us-east-1a/i-00000000000000102",
+        "instance": {
+          "id": "i-00000000000000102",
+          "__ref": {
+            "source_file": "aws_inventory.json",
+            "locator": "/collections/0/instances/1",
+            "observed_at": "2026-09-16T11:50:00Z",
+            "freshness_budget_seconds": 900
+          },
+          "stated_by": "derived",
+          "rule": "providerID last segment matched to InstanceId within tenant, account and region"
+        },
+        "stops_at": null,
+        "tf": {
+          "__ref": {
+            "source_file": "terraform_state/acme-production.json",
+            "locator": "/resources/1",
+            "observed_at": "2026-09-02T09:00:00Z",
+            "freshness_budget_seconds": 86400
+          },
+          "stated_by": "source",
+          "rule": "the record states the operator_team tag directly"
+        },
+        "team": {
+          "aws": [
+            "team-platform"
+          ],
+          "tf": [
+            "team-platform"
+          ],
+          "haveConflict": false
+        }
+      }
+    ]
+  }
+}

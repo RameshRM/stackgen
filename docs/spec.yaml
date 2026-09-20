@@ -1,0 +1,383 @@
+openapi: 3.1.0
+info:
+  title: stack-gen supplied inputs
+  version: 1.0.0
+  description: Schema of the five supplied input files. Descriptions are from EXTRACT_NOTES.md.
+
+components:
+  schemas:
+
+    # =====================================================  shared shapes
+
+    SnapshotId:
+      type: string
+      description: Opaque identifier for this collection entry; links metadata to its payload.
+
+    KeyValueEntry:
+      type: object
+      required: [Key, Value]
+      properties:
+        Key: { type: string }
+        Value: { type: string }
+
+    KeyValueMap:
+      type: object
+      additionalProperties: { type: string }
+
+    # =====================================================  manifest.json
+
+    Scope:
+      type: object
+      description: The boundaries and filters of this collection.
+      properties:
+        account_id:
+          type: string
+          description: Constrains cloud and state collections.
+        region:
+          type: string
+          description: Constrains cloud and state collections.
+        environment:
+          type: string
+          description: The authoritative environment classification for that cloud, state, or Kubernetes collection.
+        resource_types:
+          type: array
+          description: Constrains cloud and state collections.
+          items: { type: string, enum: [aws_instance, aws_db_instance] }
+        workspace_id:
+          type: string
+          description: Further bounds a state extract.
+        instance_ids:
+          type: array
+          description: An additional inventory filter.
+          items: { type: string }
+        cluster_id:
+          type: string
+          description: Bounds a Kubernetes collection.
+        namespaces:
+          type: array
+          description: Namespace filtering applies to namespaced kinds; Nodes are cluster-scoped.
+          items: { type: string }
+        kinds:
+          type: array
+          description: Bounds a Kubernetes collection.
+          items: { type: string, enum: [Deployment, ReplicaSet, Pod, Node] }
+        environments:
+          type: array
+          description: Catalog rows declare their own environment, within this list.
+          items: { type: string }
+
+    Snapshot:
+      type: object
+      description: One logical collection.
+      required:
+        [snapshot_id, source_family, source_instance_id, tenant_id,
+         payload_path, format, observed_at, exported_at,
+         freshness_budget_seconds, status, coverage, scope]
+      properties:
+        snapshot_id: { $ref: '#/components/schemas/SnapshotId' }
+        source_family:
+          type: string
+          enum: [aws, terraform, kubernetes, catalog]
+        source_instance_id:
+          type: string
+          description: The logical collector, workspace connection, or catalog across collections.
+        tenant_id:
+          type: string
+          description: Trusted internal tenant context for this collection.
+        payload_path:
+          type: [string, 'null']
+          description: Relative file path; unavailable input has a null path.
+        format: { type: string, enum: [json, csv] }
+        observed_at:
+          type: [string, 'null']
+          format: date-time
+          description: When the collector actually observed the supplied values.
+        exported_at:
+          type: [string, 'null']
+          format: date-time
+          description: When the extract was packaged; separate from observation time.
+        freshness_budget_seconds:
+          type: integer
+          description: Maximum acceptable observation age at as_of; equality is within budget.
+        status: { type: string, enum: [success, not_provided] }
+        coverage: { type: string, enum: [complete, unknown] }
+        scope: { $ref: '#/components/schemas/Scope' }
+
+    QueryDefaults:
+      type: object
+      description: An initial request. Default query parameters.
+      required: [tenant_id, environment, application_name]
+      properties:
+        tenant_id: { type: string }
+        environment: { type: string }
+        application_name: { type: string }
+
+    Manifest:
+      type: object
+      required:
+        [extract_version, schema_version, as_of, extract_notes, tenants,
+         query_defaults, snapshots]
+      properties:
+        extract_version: { type: string }
+        schema_version: { type: integer }
+        as_of:
+          type: string
+          format: date-time
+          description: Fixed evaluation time. Use this regardless of when the exercise is run.
+        description: { type: string }
+        extract_notes: { type: string }
+        tenants:
+          type: array
+          items: { type: string }
+        query_defaults: { $ref: '#/components/schemas/QueryDefaults' }
+        snapshots:
+          type: array
+          items: { $ref: '#/components/schemas/Snapshot' }
+
+    # ================================================  aws_inventory.json
+
+    AwsInstanceState:
+      type: object
+      required: [Name]
+      properties:
+        Name: { type: string }
+
+    AwsInstance:
+      type: object
+      required: [InstanceId, State]
+      properties:
+        InstanceId: { type: string }
+        State: { $ref: '#/components/schemas/AwsInstanceState' }
+        PrivateIpAddress:
+          type: string
+          description: A network address, not a provider identifier.
+        VpcId:
+          type: string
+          description: Refers to network scope.
+        Tags:
+          type: array
+          description: >
+            Normalized by the extractor to an array of Key/Value objects. Name is a
+            display label; Environment is a source tag; operator_team, when present,
+            is that source's statement about infrastructure operation. Omitted tags
+            are not empty-string claims.
+          items: { $ref: '#/components/schemas/KeyValueEntry' }
+
+    AwsDatabase:
+      type: object
+      required: [DBInstanceIdentifier, DBInstanceArn, DBInstanceStatus]
+      properties:
+        DBInstanceIdentifier: { type: string }
+        DBInstanceArn:
+          type: string
+          description: Database ARNs are supplied directly.
+        DBInstanceStatus: { type: string }
+        Tags:
+          type: array
+          items: { $ref: '#/components/schemas/KeyValueEntry' }
+
+    AwsCollection:
+      type: object
+      description: An empty array applies only to this collection's declared resource-type scope.
+      required: [snapshot_id, instances, databases]
+      properties:
+        snapshot_id: { $ref: '#/components/schemas/SnapshotId' }
+        instances:
+          type: array
+          items: { $ref: '#/components/schemas/AwsInstance' }
+        databases:
+          type: array
+          items: { $ref: '#/components/schemas/AwsDatabase' }
+
+    AwsInventory:
+      type: object
+      required: [collections]
+      properties:
+        collections:
+          type: array
+          items: { $ref: '#/components/schemas/AwsCollection' }
+
+    # ==========================================  terraform_state/*.json
+
+    TerraformValues:
+      type: object
+      description: Identifies the referenced provider object.
+      required: [id]
+      properties:
+        id: { type: string }
+        arn: { type: string }
+        tags:
+          allOf: [{ $ref: '#/components/schemas/KeyValueMap' }]
+          description: A string-to-string mapping, unlike the AWS tag array.
+
+    TerraformResource:
+      type: object
+      required: [address, mode, type, values]
+      properties:
+        address:
+          type: string
+          description: The resource address within a workspace.
+        mode:
+          type: string
+          enum: [managed, data]
+          description: >
+            managed denotes a managed-resource record; data denotes a
+            data-source reference.
+        type: { type: string, enum: [aws_instance, aws_db_instance] }
+        values: { $ref: '#/components/schemas/TerraformValues' }
+
+    TerraformState:
+      type: object
+      required: [snapshot_id, lineage, serial, resources]
+      properties:
+        snapshot_id: { $ref: '#/components/schemas/SnapshotId' }
+        lineage:
+          type: string
+          description: Identifies the state lineage. Not a wall-clock time.
+        serial:
+          type: integer
+          description: That state's revision counter. Not a wall-clock time.
+        resources:
+          type: array
+          items: { $ref: '#/components/schemas/TerraformResource' }
+
+    # ================================================  k8s_resources.json
+
+    K8sOwnerReference:
+      type: object
+      description: >
+        Controller/lifecycle references, including target kind, name, and UID.
+        ReplicaSets reference Deployments, and Pods reference ReplicaSets.
+      required: [apiVersion, kind, name, uid]
+      properties:
+        apiVersion: { type: string }
+        kind: { type: string }
+        name: { type: string }
+        uid: { type: string }
+        controller: { type: boolean }
+
+    K8sMetadata:
+      type: object
+      required: [name, uid]
+      properties:
+        name:
+          type: string
+          description: Display names can be reused.
+        uid:
+          type: string
+          description: Identifier of the object's incarnation.
+        namespace:
+          type: string
+          description: Supplied for namespaced objects.
+        labels:
+          allOf: [{ $ref: '#/components/schemas/KeyValueMap' }]
+          description: Source labels where supplied.
+        ownerReferences:
+          type: array
+          items: { $ref: '#/components/schemas/K8sOwnerReference' }
+
+    K8sSelector:
+      type: object
+      properties:
+        matchLabels:
+          allOf: [{ $ref: '#/components/schemas/KeyValueMap' }]
+
+    K8sSpec:
+      type: object
+      description: Selected workload specification fields.
+      properties:
+        replicas: { type: integer }
+        selector: { $ref: '#/components/schemas/K8sSelector' }
+        nodeName:
+          type: string
+          description: Pod. Name of its assigned Node in the same cluster.
+        providerID:
+          type: string
+          description: >
+            Node. Optional provider reference, format
+            aws:///<availability-zone>/<instance-id>. Does not encode the
+            account. An omitted provider reference is not an empty instance
+            identifier.
+
+    K8sAddress:
+      type: object
+      required: [type, address]
+      properties:
+        type: { type: string }
+        address: { type: string }
+
+    K8sStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          description: Reported Pod phase.
+        addresses:
+          type: array
+          description: Node. Reported addresses, including InternalIP.
+          items: { $ref: '#/components/schemas/K8sAddress' }
+
+    K8sObject:
+      type: object
+      description: Selected fields only, with exactly the kinds listed in its manifest scope.
+      required: [apiVersion, kind, metadata]
+      properties:
+        apiVersion: { type: string }
+        kind: { type: string, enum: [Deployment, ReplicaSet, Pod, Node] }
+        metadata: { $ref: '#/components/schemas/K8sMetadata' }
+        spec: { $ref: '#/components/schemas/K8sSpec' }
+        status: { $ref: '#/components/schemas/K8sStatus' }
+
+    K8sCollection:
+      type: object
+      required: [snapshot_id, items]
+      properties:
+        snapshot_id: { $ref: '#/components/schemas/SnapshotId' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/K8sObject' }
+
+    K8sResources:
+      type: object
+      required: [collections]
+      properties:
+        collections:
+          type: array
+          items: { $ref: '#/components/schemas/K8sCollection' }
+
+    # ==============================================  service_catalog.csv
+
+    ServiceCatalogRow:
+      type: object
+      description: >
+        CSV values are strings; blank cells mean not supplied, not an assertion
+        that no team, workload, or dependency exists.
+      required: [snapshot_id, service_id, service_name, environment]
+      properties:
+        snapshot_id:
+          allOf: [{ $ref: '#/components/schemas/SnapshotId' }]
+          description: Manifest collection for this row.
+        service_id:
+          type: string
+          description: Catalog application identifier within its tenant.
+        service_name:
+          type: string
+          description: Application display name.
+        environment:
+          type: string
+          description: Environment classification for this entry.
+        owner_team:
+          type: string
+          description: Catalog statement of application-team responsibility.
+        cluster_id:
+          type: string
+          description: A workload reference.
+        namespace:
+          type: string
+          description: A workload reference.
+        deployment_name:
+          type: string
+          description: A workload reference; refers to a Kubernetes Deployment.
+        declared_dependency_arn:
+          type: string
+          description: A dependency stated by the catalog, when supplied.
