@@ -84,9 +84,9 @@ The screen captured videos are organized in the order .
 
 | Seq | Description | File Path |
 | --- | --- | --- |
-| **1**   | Creating a new blueprint for a Team `payments`|[Creating a new Blueprint](./deck/screen-captures/step1.mp4)
-| **2**   | Creating a new Deployment spec from the blueprint created  for a Team `payments`|[Creating a new Deployment spec](./deck/screen-captures/step2.mp4)
-| **2.1**   | Creating a new Deployment spec with Workloads provisioned; from the blueprint created  for a Team `payments`|[Creating a new Deployment Spec workload](./deck/screen-captures/step2.1.mp4)
-| **3**   | Approve for Promotion of the workload|[Approve for Promotion](./deck/screen-captures/step3.mp4)
-| **3.1** | Provisioning workloads on production Approve for Promotion of the workload|[Provisioning workloads](./deck/screen-captures/step3.1.mp4)
-| **4** | Multi Stage Work flow with Airflow|[Multi Stage Work flow with Airflow](./deck/screen-captures/step4.mp4)
+| **1**   | Creating a new blueprint for a Team `payments`|[Creating a new Blueprint](https://www.loom.com/share/0314b21623de4fddaf3af8f147ad1795)
+| **2**   | Creating a new Deployment spec from the blueprint created  for a Team `payments`|[Creating a new Deployment spec](https://www.loom.com/share/45567d097973429e97dcad6c4584447e)
+| **2.1**   | Creating a new Deployment spec with Workloads provisioned; from the blueprint created  for a Team `payments`|[Creating a new Deployment Spec workload](https://www.loom.com/share/96579451ebf14bebb48f0e500e34f338)
+| **3**   | Approve for Promotion of the workload|[Approve for Promotion](https://www.loom.com/share/40847a657ee0481f9e21d2b97b007c32)
+| **3.1** | Provisioning workloads on production Approve for Promotion of the workload|[Provisioning workloads](https://www.loom.com/share/cf0e5333e3aa413692098fa9a92fe980)
+| **4** | Multi Stage Work flow with Airflow|[Multi Stage Work flow with Airflow](https://www.loom.com/share/ac49d6f876ce4575b336a23da752c03b)
