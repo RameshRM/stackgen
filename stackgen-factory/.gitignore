@@ -1,0 +1,21 @@
+# generated from a deployment spec, not source
+# deployments/
+# orchestrator/dags/spec_*.py
+
+# produced by a run
+audit/
+approvals/
+
+# local tooling
+airflow-home/
+.venv-airflow/
+node_modules/
+__pycache__/
+*.pyc
+
+
+var
+mocks
+scripts
+control-plane/test
+

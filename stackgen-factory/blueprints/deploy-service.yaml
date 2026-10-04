@@ -1,0 +1,94 @@
+# A blueprint governs an operation. It says what may happen, in what order, who
+# approves, what is recorded and what counts as success.
+#
+# It also carries the workload's resource envelope, because the answers do not: a
+# developer says which image to run, not that staging gets 50m of CPU. Bounds
+# live here too, so a choice is the developer's only within limits the platform
+# team set.
+#
+# Nothing in `workload` is protocol-specific. How an application is spoken to —
+# a port, a health path — is a property of the application and is asked.
+
+name: deploy-service
+version: 1.1.0
+owner_team: platform
+visibility: shared
+
+# asked at execution time; the answers are what make a deployment spec
+questions:
+  - id: app_name
+    type: string
+  - id: image
+    type: string
+  - id: slo_error_rate
+    type: number
+    default: 0.01
+
+  # How this application is spoken to. Asked rather than declared in `workload`,
+  # because a port is a property of the application and `workload` is the
+  # resource envelope the platform governs. A blueprint for something that
+  # serves no requests simply does not ask these.
+  - id: port
+    type: number
+    default: 3000
+  - id: health_path
+    type: string
+    default: /health
+  - id: metrics_path
+    type: string
+    default: /metrics
+
+# what this operation may do, at all
+boundaries:
+  allowed_actions: [deploy, promote]
+  environments: [staging, production]
+
+# the shape of the thing being deployed. Per-environment values become overlays;
+# bounds are what a developer may override to.
+workload:
+  port: 3000
+  health_path: /health
+  # where this workload publishes evidence. The platform scrapes it; the app is
+  # never asked to know which deployment spec it belongs to.
+  metrics_path: /metrics
+
+  # Each of these takes a default, which any environment may override by name.
+  # An environment that says nothing gets the default, so adding one does not
+  # mean restating every value.
+  replicas:
+    default: 1
+    production: 2
+    max: 5
+
+  cpu:
+    default: { requests: 50m, limits: 200m }
+    production: { requests: 200m, limits: 1000m }
+
+  memory:
+    default: { requests: 64Mi, limits: 128Mi }
+    production: { requests: 256Mi, limits: 512Mi }
+    values: [128Mi, 256Mi, 512Mi]
+
+# the ordered path, including where a human is involved
+sequence:
+  - action: deploy
+    environment: staging
+
+  - gate: promotion_approval
+    approver_role: release-manager
+
+  - action: promote
+    environment: production
+
+# what must be captured as the run proceeds
+record:
+  - image
+  - approver
+  - error_rate_at_promotion
+
+# what must verify before the deployment counts as successful
+acceptance:
+  - id: error_rate
+    source: metrics
+    expression: error_rate < {{ slo_error_rate }}
+    window: 2m

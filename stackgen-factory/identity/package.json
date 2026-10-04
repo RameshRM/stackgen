@@ -1,0 +1,9 @@
+{
+  "name": "factory-identity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "jose": "^5.10.0"
+  }
+}

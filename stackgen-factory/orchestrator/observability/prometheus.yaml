@@ -1,0 +1,169 @@
+# The means of measuring, provisioned by the workflow that needs it.
+#
+# A blueprint may declare acceptance, so something has to be able to answer the
+# question it asks. This is that thing. It is applied by the orchestrator rather
+# than assumed to exist, because a deployment whose acceptance cannot be
+# measured is a deployment nobody can judge — and finding that out at judgement
+# time is too late.
+#
+# Discovery is by annotation. The kustomize tree generated for each deployment
+# spec annotates its pods, so a workload becomes observable by being deployed;
+# there is no second place to register it and therefore no second place to
+# forget.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: factory-observability
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: factory-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: factory-prometheus
+rules:
+  # read only, and only what discovery needs
+  - apiGroups: [""]
+    resources: [nodes, services, endpoints, pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: factory-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: factory-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: factory-observability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: factory-observability
+data:
+  prometheus.yml: |
+    # Alert rules are generated from each deployment spec's acceptance block and
+    # written into the factory-rules ConfigMap, one file per spec.
+    rule_files:
+      - /etc/prometheus/rules/*.yaml
+
+    global:
+      # short, because an acceptance window of two minutes needs more than two
+      # samples in it to mean anything
+      scrape_interval: 5s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: factory-workloads
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # only pods that ask to be scraped
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          # the dimensions acceptance is asked in. They come from the pod's own
+          # labels, which the deployment spec's kustomize tree set, so a metric
+          # cannot claim a spec it was not deployed by.
+          - source_labels: [__meta_kubernetes_pod_label_factory_spec]
+            action: replace
+            target_label: spec
+          - source_labels: [__meta_kubernetes_pod_label_factory_blueprint]
+            action: replace
+            target_label: blueprint
+          - source_labels: [__meta_kubernetes_pod_label_factory_team]
+            action: replace
+            target_label: team
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+---
+# Generated alert rules, one key per deployment spec. Created empty; the
+# workflow patches a key in when it provisions a spec's observability.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: factory-rules
+  namespace: factory-observability
+data: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: factory-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: prometheus }
+  template:
+    metadata:
+      labels: { app: prometheus }
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.54.1
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            # nothing here outlives the demo, and a small retention keeps the
+            # kind node's disk out of it
+            - --storage.tsdb.retention.time=2h
+            # so a newly generated rule can be loaded without restarting
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /-/ready, port: 9090 }
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          volumeMounts:
+            - { name: config, mountPath: /etc/prometheus }
+            - { name: rules, mountPath: /etc/prometheus/rules }
+            - { name: data, mountPath: /prometheus }
+      volumes:
+        - name: config
+          configMap: { name: prometheus-config }
+        - name: rules
+          configMap: { name: factory-rules }
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: factory-observability
+spec:
+  selector: { app: prometheus }
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+  type: NodePort

@@ -1,0 +1,20 @@
+# The default acceptance query: what fraction of this deployment's requests failed.
+#
+# Scoped by spec and blueprint, so the answer is about one deployment and not
+# about whatever else happens to share the cluster. Those dimensions are on the
+# metric because the workload carries them as pod labels, set by the kustomize
+# tree the deployment spec owns — a metric cannot claim a spec it was not
+# deployed by.
+#
+# The blueprint supplies the window and the threshold. This file supplies only
+# the measurement: `error_rate < 0.01` is the blueprint's sentence, and the
+# number on the left is what this returns.
+#
+# Placeholders are filled by the orchestrator from the deployment spec.
+#
+# A deployment that served no requests yields no samples, and that is not a
+# zero error rate. The caller treats an empty result as cannot_tell.
+
+sum(rate(http_requests_total{spec="{{ spec_id }}",blueprint="{{ blueprint }}",namespace="{{ namespace }}",status=~"5.."}[{{ window }}]))
+/
+sum(rate(http_requests_total{spec="{{ spec_id }}",blueprint="{{ blueprint }}",namespace="{{ namespace }}"}[{{ window }}]))

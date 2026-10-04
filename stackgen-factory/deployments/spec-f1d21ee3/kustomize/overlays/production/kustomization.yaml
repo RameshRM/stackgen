@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: payments-production
+resources:
+  - ../../base
+replicas:
+  - name: foo-bar
+    count: 2
+labels:
+  - includeSelectors: false
+    includeTemplates: true
+    pairs:
+      factory.team: payments
+      factory.spec: spec-f1d21ee3
+      factory.blueprint: hello
+patches:
+  - target:
+      kind: Deployment
+      name: foo-bar
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi

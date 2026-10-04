@@ -1,0 +1,62 @@
+id: spec-29480744
+type: k8s
+team: payments
+created_at: 2026-10-03T16:20:37.228Z
+created_by: bob@acme.com
+blueprint: hello
+blueprint_version: 1.0.0
+answers:
+  app_name: world
+  slo_error_rate: 0.01
+  port: 3000
+  health_path: /health
+  metrics_path: /metrics
+boundaries:
+  allowed_actions:
+    - scaffold
+    - build
+    - deploy
+    - promote
+  environments:
+    - staging
+    - production
+sequence:
+  - id: scaffold
+    action: scaffold
+    environment: staging
+    needs: []
+    namespace: payments-staging
+  - id: build
+    action: build
+    environment: staging
+    needs:
+      - scaffold
+    namespace: payments-staging
+  - id: deploy_staging
+    action: deploy
+    environment: staging
+    needs:
+      - build
+    namespace: payments-staging
+  - id: sign_off
+    gate: promotion_approval
+    approver_role: release-manager
+    needs:
+      - deploy_staging
+  - id: promote_production
+    action: promote
+    environment: production
+    needs:
+      - sign_off
+    namespace: payments-production
+dag_id: spec_29480744
+kustomize: kustomize/overlays/{environment}
+record:
+  - image
+  - approver
+  - error_rate_at_promotion
+acceptance:
+  - id: error_rate
+    source: metrics
+    expression: error_rate < 0.01
+    window: 15s

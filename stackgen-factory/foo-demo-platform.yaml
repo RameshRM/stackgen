@@ -1,0 +1,71 @@
+name: foo
+owner_team: platform
+visibility: shared
+
+questions:
+  - id: app_name
+    type: string
+  - id: image
+    type: string
+  - id: slo_error_rate
+    type: number
+    default: 0.01
+  - id: port
+    type: number
+    default: 3000
+  - id: health_path
+    type: string
+    default: /health
+  - id: metrics_path
+    type: string
+    default: /metrics
+
+boundaries:
+  allowed_actions: [deploy, verify, promote]
+  environments: [staging, production]
+
+workload:
+  replicas:
+    default: 1
+    production: 2
+    max: 3
+  cpu:
+    default: { requests: 50m, limits: 200m }
+    production: { requests: 200m, limits: 1000m }
+  memory:
+    default: { requests: 64Mi, limits: 128Mi }
+    production: { requests: 256Mi, limits: 512Mi }
+    values: [128Mi, 256Mi, 512Mi]
+
+sequence:
+  - id: deploy_staging
+    action: deploy
+    environment: staging
+
+  - id: scan
+    action: verify
+    environment: staging
+    needs: [deploy_staging]
+
+  - id: load_test
+    action: verify
+    environment: staging
+    needs: [deploy_staging]
+
+  - id: sign_off
+    gate: promotion_approval
+    approver_role: release-manager
+    needs: [scan, load_test]
+
+  - id: promote_production
+    action: promote
+    environment: production
+    needs: [sign_off]
+
+record: [image, approver, error_rate_at_promotion]
+
+acceptance:
+  - id: error_rate
+    source: metrics
+    expression: error_rate < {{ slo_error_rate }}
+    window: 15s
