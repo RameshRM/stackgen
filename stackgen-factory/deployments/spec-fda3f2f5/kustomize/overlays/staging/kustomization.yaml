@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: payments-staging
+resources:
+  - ../../base
+replicas:
+  - name: demoapp2
+    count: 1
+labels:
+  - includeSelectors: false
+    includeTemplates: true
+    pairs:
+      factory.team: payments
+      factory.spec: spec-fda3f2f5
+      factory.blueprint: test-hello

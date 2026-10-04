@@ -77,3 +77,16 @@ Then publish a blueprint and submit a spec from the UI, or through the MCP serve
 - Acceptance (error rate) becomes alerts; it does not yet stop a run.
 
 More detail: [details.md](./details.md)
+___
+## Screen Captured
+
+The screen captured videos are organized in the order .
+
+| Seq | Description | File Path |
+| --- | --- | --- |
+| **1**   | Creating a new blueprint for a Team `payments`|[Creating a new Blueprint](./deck/screen-captures/step1.mp4)
+| **2**   | Creating a new Deployment spec from the blueprint created  for a Team `payments`|[Creating a new Deployment spec](./deck/screen-captures/step2.mp4)
+| **2.1**   | Creating a new Deployment spec with Workloads provisioned; from the blueprint created  for a Team `payments`|[Creating a new Deployment Spec workload](./deck/screen-captures/step2.1.mp4)
+| **3**   | Approve for Promotion of the workload|[Approve for Promotion](./deck/screen-captures/step3.mp4)
+| **3.1** | Provisioning workloads on production Approve for Promotion of the workload|[Provisioning workloads](./deck/screen-captures/step3.1.mp4)
+| **4** | Multi Stage Work flow with Airflow|[Multi Stage Work flow with Airflow](./deck/screen-captures/step4.mp4)
