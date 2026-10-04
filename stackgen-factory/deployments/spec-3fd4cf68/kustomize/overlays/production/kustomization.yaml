@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: payments-production
+resources:
+  - ../../base
+replicas:
+  - name: demo
+    count: 2
+labels:
+  - includeSelectors: false
+    includeTemplates: true
+    pairs:
+      factory.team: payments
+      factory.spec: spec-3fd4cf68
+      factory.blueprint: hello-fork
+patches:
+  - target:
+      kind: Deployment
+      name: demo
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi

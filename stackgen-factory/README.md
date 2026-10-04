@@ -1,193 +1,79 @@
 # StackGen Factory
 
-Summary :
+A developer ships an application to production without filing a ticket, while the platform team still decides what is allowed, in what order, and who has to approve.
 
-`StackGen Factory` is a intent based workflow to **Shift Left** the Whole deployment of the application development life cycle.
+## The story of one deployment
 
-## Key Concepts
+**1. The platform team writes the rules once.**
+A platform admin publishes a **blueprint**, `hello`: which steps may run, in which environments, with what resources, and that production needs a release manager's sign-off.
 
-### WISB
+**2. A developer asks for a deployment.**
+A developer, or an agent acting for one, picks `hello` and answers its few questions, such as the app name. That produces a **deployment spec**: the blueprint plus the answers, frozen. Writing it is what starts the run.
 
-- **Blueprint** Template authored by a User with a Role of Platform Administrator for a Team.
+**3. Airflow does the work, step by step.**
+The spec becomes an Airflow **DAG**. It scaffolds a repository, builds an image tagged with the commit, and only then generates the k8s manifests naming that image. It deploys to staging.
 
-- **Deployment Spec** Deployment Spec is derived out of a **Blueprint**. Deplyment Spec is authored either by a Human or Agent or a Bot from default values inherited from Blueprint.
+**4. Every step asks permission first.**
+Before each action, the worker asks the policy engine. The worker decides nothing; the blueprint and the recorded approvals do.
 
-### Airflow
-
-- Airflow is the chosen workflow engine.
-- Deployment Sepc when authored is parsed and converted as Airflow `Workflow / Dag`
-- Every Action is a sequence of steps in the workflow per Deployment spec
-
-### Workflow
+**5. A person approves production.**
+The run waits at `sign_off`. A release manager approves; a bot cannot. Only then is the same image promoted to production.
 
 ```mermaid
-flowchart LR
-    A[Blueprint] --> B[Deployment Spec] --> C[Airflow DAG] --> D[Deployment on K8s]
+sequenceDiagram
+    actor Admin as Platform admin
+    actor Dev as Developer / agent
+    participant CP as Control plane
+    participant AF as Airflow
+    participant OPA as Policy
+    participant K8s
+    actor RM as Release manager
+
+    Admin->>CP: publish blueprint "hello"
+    Dev->>CP: submit deployment spec (app_name)
+    CP->>AF: start the DAG
+    AF->>OPA: may I scaffold and build?
+    AF->>AF: scaffold repo, build image (tag = commit)
+    AF->>CP: generate manifests for this image
+    AF->>OPA: may I deploy to staging?
+    AF->>K8s: apply staging
+    AF-->>RM: waiting at sign_off
+    RM->>CP: approve
+    AF->>OPA: may I promote?
+    OPA-->>AF: allow, sign_off approved
+    AF->>K8s: apply production
 ```
 
-## Examples
+## The four things
 
-### Blueprint
+| | What it is | Who makes it |
+|---|---|---|
+| **Blueprint** | the rules for an operation; one blueprint, many deployments | platform admin |
+| **Deployment spec** | one deployment: blueprint + answers, immutable | developer or agent |
+| **DAG** | the run in Airflow; steps can fork and join | generated from the spec |
+| **Deployment** | the app running in k8s, one namespace per team and environment | the DAG |
 
-- [x] For team `Payments` a Platform Administrator or User with Equivalent role Creates a new BluePrint.
+## Why it is built this way
 
-```YAML
-name: hello
-owner_team: platform
-visibility: shared
-questions:
-  - id: app_name
-    type: string
-  - id: slo_error_rate
-    type: number
-    default: 0.01
-  - id: port
-    type: number
-    default: 3000
-  - id: health_path
-    type: string
-    default: /health
-  - id: metrics_path
-    type: string
-    default: /metrics
-boundaries:
-  allowed_actions:
-    - scaffold
-    - build
-    - deploy
-    - promote
-  environments:
-    - staging
-    - production
-workload:
-  replicas:
-    default: 1
-    production: 2
-    max: 4
-  cpu:
-    default:
-      requests: 50m
-      limits: 200m
-    production:
-      requests: 200m
-      limits: 1000m
-  memory:
-    default:
-      requests: 64Mi
-      limits: 128Mi
-    production:
-      requests: 256Mi
-      limits: 512Mi
-    values:
-      - 128Mi
-      - 256Mi
-      - 512Mi
-sequence:
-  - id: scaffold
-    action: scaffold
-    environment: staging
-  - id: build
-    action: build
-    environment: staging
-    needs:
-      - scaffold
-  - id: deploy_staging
-    action: deploy
-    environment: staging
-    needs:
-      - build
-  - id: sign_off
-    gate: promotion_approval
-    approver_role: release-manager
-    needs:
-      - deploy_staging
-  - id: promote_production
-    action: promote
-    environment: production
-    needs:
-      - sign_off
-record:
-  - image
-  - approver
-  - error_rate_at_promotion
-acceptance:
-  - id: error_rate
-    source: metrics
-    expression: error_rate < {{ slo_error_rate }}
-    window: 15s
-version: 1.0.0
+- **Two documents.** The blueprint is the template; the spec is what was actually deployed, kept for the audit.
+- **Policy at every action.** A run sent straight to promote is refused: no approval is on record. Answers are `allow`, `deny` or `cannot_tell`, and every one is recorded.
+- **Manifests after build.** A failed build leaves nothing behind naming an image that does not exist.
+- **Airflow.** Open source and extensible. A run waiting days for approval holds no worker.
+- **k8s + kustomize.** k8s is the first target, not the only one. kustomize gives one overlay per environment.
+
+## Try it
 
 ```
+make up      # cluster, identity, policy, airflow, control plane
+make down
+```
 
-In the above example a new blueprint `hello` is created with defaults , and some questions to be filled by the person using this blueprint.
+Then publish a blueprint and submit a spec from the UI, or through the MCP server from an agent.
 
-### Deployment Spec
+## Not done yet
 
-- [x] For team `Payments` user / developer with a right role like developer uses the blueprint Hello.
+- The manifests call from Airflow to the control plane is not authenticated.
+- Only `scaffold`, `build`, `deploy` and `promote` have task handlers.
+- Acceptance (error rate) becomes alerts; it does not yet stop a run.
 
-- Provides the defaults like
-  * Application name
-  * Metrics port
-  * Health check
-  * Etc
-
-- [x] User chooses the deployment environment , Defaulted to `K8`
-
-- Submission generates a Airflow `Workflow / Dag`
-  * Generates the workflow details
-  * Converts the deployment spec to equivalent Workflow tasks and submits to Airfow.
-
-### Airflow
-  - On submission every workflow is a DAG
-  - Every deployment spec is a DAG on its own
-  - Every task executes on the completion of the previous task
-  - Airflow provisions the following
-
-    * Scaffolding the repository (with a default setup)
-    * Builds the image, the image uses the semantic of `blueprint/appname:`. This provides the lineage of the usage of blueprint.
-    * After successfuly deploys the workload to selected deployment machinery.
-      * In this example it is k8s.
-
-### Identity
-
-  - Uses a simple Idenity Server a OIDC server for the control plane and the bot.
-  - Bot is a dedicated account like a service account
-  - Bot account is per Team
-
-### Policy
-
-  - Using a Policy engine evaluation for boundaries and approval mechanism.
-  - User with the right permission can act on the task
-  - Currently Approval of promotion is with a Policy
-  - User Approves the Promotion and Airflow looks at the state of the policy to Promote.
-
-## Components
-
-
-| Name | Description | File Path |
-| --- | --- | --- |
-| **`controlplane`** | Api Layer orchestrating the whole UX | [control-plane](./control-plane) |  
-| **`identity Server`** | Naive and mock Identity Server | [identity](./identity) |  
-| **`orchestrator`** | Airflow setup | [orchestrator](./orchestrator) |  
-| **`ui`** | Show and tell web | [ui](./ui) |  
-| **`mcp`** | Simple MCP Server, Communicating with the `Control Plane` API | [mcp](./mcp) |  
-|___|___|___|
-| **`blueprints`** | Collection of blueprints created a repository / folder to manage.| [blueprints](./blueprints) |  
-| **`deployments`** | Collection of deployments created from the blueprint.| [deployments](./deployments) |  
-
-## What is not covered well
-- Current Tasks on the workflow is linear.
-- Alerts for the error rate the budget , it is envisioned as alerts only.
-- Assumed the Agent / Human interaction as Bot vs User interaction only
-
-## Design choices and Why
-
-- Airflow: Workflow orchestrator, opensource and extensible
-- K8S: Deployment machinery along with `Kustomize`
-## Conclusion
-
-- In theory this eco-system can work really well with a example like below.
-
-  - A Git issue or a jira task is created to start a work
-  - The work can take parameter as a blueprint
-  - Commit Action / Webhooks can manage the deployment spec & submit to the orchestrator machinery.
+More detail: [details.md](./details.md)
