@@ -178,8 +178,12 @@ In the above example a new blueprint `hello` is created with defaults , and some
 ## What is not covered well
 - Current Tasks on the workflow is linear.
 - Alerts for the error rate the budget , it is envisioned as alerts only.
-- Assumed the Agent / Human interaction as Bot vs User interaction only 
+- Assumed the Agent / Human interaction as Bot vs User interaction only
 
+## Design choices and Why
+
+- Airflow: Workflow orchestrator, opensource and extensible
+- K8S: Deployment machinery along with `Kustomize`
 ## Conclusion
 
 - In theory this eco-system can work really well with a example like below.
